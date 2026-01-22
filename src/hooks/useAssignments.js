@@ -27,7 +27,6 @@ export function useAssignments(username) {
     setLoading(true);
     setError(null);
 
-    // Each user has their own collection: users/{username}/assignments
     const assignmentsRef = collection(db, 'users', username, 'assignments');
     const q = query(assignmentsRef, orderBy('createdAt', 'desc'));
 
@@ -108,4 +107,3 @@ export function useAssignments(username) {
     toggleComplete
   };
 }
-

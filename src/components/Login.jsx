@@ -15,34 +15,32 @@ export function Login() {
 
   return (
     <div className="login-container">
-      <div className="login-glow login-glow-1"></div>
-      <div className="login-glow login-glow-2"></div>
-      
       <div className="login-card">
         <div className="login-icon">📚</div>
-        <h1 className="login-title">Assignment Tracker</h1>
-        <p className="login-subtitle">Enter your username to access your assignments</p>
+        <h1 className="login-title">
+          Study <span className="login-title-highlight">Buddy</span>
+        </h1>
+        <p className="login-subtitle">Your cute assignment tracker ✨</p>
         
         <form onSubmit={handleSubmit} className="login-form">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Enter username..."
+            placeholder="Enter your username..."
             className="login-input"
             autoFocus
           />
           <button type="submit" className="login-button" disabled={!inputValue.trim()}>
-            Continue
+            Let's go!
             <span className="button-arrow">→</span>
           </button>
         </form>
         
         <p className="login-hint">
-          Your username is used to save and retrieve your assignments
+          ✨ Your data is saved with your username
         </p>
       </div>
     </div>
   );
 }
-

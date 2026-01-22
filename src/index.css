@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -5,16 +7,38 @@
 }
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --text-primary: #fafafa;
-  --text-secondary: #a0a0b0;
-  --accent-coral: #ff6b6b;
-  --accent-amber: #ffc857;
-  --accent-teal: #4ecdc4;
-  --accent-purple: #a855f7;
-  --gradient-1: linear-gradient(135deg, #ff6b6b 0%, #ffc857 100%);
-  --gradient-2: linear-gradient(135deg, #4ecdc4 0%, #a855f7 100%);
+  --bg-primary: #fef7f4;
+  --bg-secondary: #ffffff;
+  --bg-accent: #fff5f5;
+  --text-primary: #2d2d2d;
+  --text-secondary: #6b6b6b;
+  --text-muted: #9b9b9b;
+  
+  /* Cute pastel palette */
+  --pink-light: #ffe4ec;
+  --pink-main: #ff8fab;
+  --pink-dark: #ff6b8a;
+  --purple-light: #e8e0ff;
+  --purple-main: #b8a5ff;
+  --blue-light: #e0f4ff;
+  --blue-main: #7ec8e3;
+  --mint-light: #e0fff4;
+  --mint-main: #7ee8c7;
+  --peach-light: #fff0e6;
+  --peach-main: #ffb088;
+  --yellow-light: #fff9e0;
+  --yellow-main: #ffd66b;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
+  
+  /* Border radius */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
 }
 
 html {
@@ -22,7 +46,7 @@ html {
 }
 
 body {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -35,3 +59,26 @@ body {
   min-height: 100vh;
 }
 
+/* Cute scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pink-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pink-main);
+}
+
+/* Selection */
+::selection {
+  background: var(--pink-light);
+  color: var(--text-primary);
+}
