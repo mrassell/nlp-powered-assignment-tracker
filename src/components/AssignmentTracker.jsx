@@ -36,6 +36,48 @@ export function AssignmentTracker() {
   const [newClassName, setNewClassName] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [showCompleted, setShowCompleted] = useState(false);
+  
+  // Edit modal state
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    classId: '',
+    type: '',
+    dueDate: '',
+    status: 'pending'
+  });
+
+  // Open edit modal
+  const openEditModal = (assignment) => {
+    setEditingAssignment(assignment);
+    setEditForm({
+      title: assignment.title || '',
+      classId: assignment.classId || '',
+      type: assignment.type || '',
+      dueDate: assignment.dueDate || '',
+      status: assignment.status || 'pending'
+    });
+  };
+
+  // Save edited assignment
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingAssignment) return;
+    
+    const selectedClass = classes.find(c => c.id === editForm.classId);
+    
+    await updateAssignment(editingAssignment.id, {
+      title: editForm.title,
+      classId: editForm.classId || null,
+      className: selectedClass?.name || null,
+      type: editForm.type || null,
+      dueDate: editForm.dueDate || null,
+      status: editForm.status,
+      completed: editForm.status === 'completed'
+    });
+    
+    setEditingAssignment(null);
+  };
 
   // Change status via dropdown
   const changeStatus = async (assignment, newStatus) => {
@@ -410,6 +452,13 @@ export function AssignmentTracker() {
                         
                         <div className="col-actions">
                           <button 
+                            className="edit-btn"
+                            onClick={() => openEditModal(assignment)}
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button 
                             className="delete-btn"
                             onClick={() => deleteAssignment(assignment.id)}
                             title="Delete"
@@ -453,6 +502,101 @@ export function AssignmentTracker() {
                 </button>
                 <button type="submit" className="modal-submit" disabled={!newClassName.trim()}>
                   Add Class
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Assignment Modal */}
+      {editingAssignment && (
+        <div className="modal-overlay" onClick={() => setEditingAssignment(null)}>
+          <div className="modal edit-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>✏️ Edit Assignment</h3>
+              <button onClick={() => setEditingAssignment(null)} className="modal-close">×</button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="modal-form">
+              <div className="form-group">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  placeholder="Assignment title..."
+                  className="modal-input"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Class</label>
+                  <select
+                    value={editForm.classId}
+                    onChange={(e) => setEditForm({ ...editForm, classId: e.target.value })}
+                    className="modal-select"
+                  >
+                    <option value="">Misc</option>
+                    {classes.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label>Type</label>
+                  <select
+                    value={editForm.type}
+                    onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                    className="modal-select"
+                  >
+                    <option value="">None</option>
+                    <option value="Homework">Homework</option>
+                    <option value="Quiz">Quiz</option>
+                    <option value="Exam">Exam</option>
+                    <option value="Project">Project</option>
+                    <option value="Lab">Lab</option>
+                    <option value="Reading">Reading</option>
+                    <option value="Paper">Paper</option>
+                    <option value="Presentation">Presentation</option>
+                    <option value="Discussion">Discussion</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Due Date</label>
+                  <input
+                    type="date"
+                    value={editForm.dueDate}
+                    onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                    className="modal-input"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    className="modal-select"
+                  >
+                    <option value="pending">To Do</option>
+                    <option value="in_progress">Doing</option>
+                    <option value="completed">Done</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="modal-actions">
+                <button type="button" onClick={() => setEditingAssignment(null)} className="modal-cancel">
+                  Cancel
+                </button>
+                <button type="submit" className="modal-submit">
+                  Save Changes
                 </button>
               </div>
             </form>

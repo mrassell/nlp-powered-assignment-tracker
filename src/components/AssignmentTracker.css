@@ -701,8 +701,10 @@
 .col-actions {
   display: flex;
   justify-content: center;
+  gap: 0.25rem;
 }
 
+.edit-btn,
 .delete-btn {
   padding: 0.25rem;
   background: transparent;
@@ -710,13 +712,15 @@
   cursor: pointer;
   opacity: 0;
   transition: all 0.15s ease;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
+.table-row:hover .edit-btn,
 .table-row:hover .delete-btn {
   opacity: 1;
 }
 
+.edit-btn:hover,
 .delete-btn:hover {
   transform: scale(1.2);
 }
@@ -783,9 +787,10 @@
   color: var(--pink-dark);
 }
 
-.modal-input {
+.modal-input,
+.modal-select {
   width: 100%;
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   font-size: 1rem;
   font-family: inherit;
   background: var(--bg-accent);
@@ -793,10 +798,50 @@
   border-radius: var(--radius-md);
   outline: none;
   transition: all 0.2s ease;
+  color: var(--text-primary);
 }
 
-.modal-input:focus {
+.modal-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.modal-input:focus,
+.modal-select:focus {
   border-color: var(--pink-main);
+}
+
+/* Edit Modal */
+.edit-modal {
+  max-width: 500px;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 500px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .modal-hint {
