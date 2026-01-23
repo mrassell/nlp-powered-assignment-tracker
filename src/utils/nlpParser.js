@@ -452,41 +452,28 @@ export function parseAssignmentInput(input, classes = []) {
     result.confidence += 20;
   }
   
-  // 5. Build title
-  const titleParts = [];
+  // 5. Build title - Show the TASK DESCRIPTION, not the class name
+  // Get all tokens that aren't date or class (keep type, number, and description words)
+  const titleTokens = tokens.filter((_, i) => {
+    // Exclude date tokens
+    if (dateMatch && dateMatch.indices.includes(i)) return false;
+    // Exclude class match tokens (class shown in separate column)
+    if (classMatch.matchedIndices && classMatch.matchedIndices.includes(i)) return false;
+    return true;
+  });
   
-  if (result.className) {
-    titleParts.push(result.className);
-  }
-  
-  if (result.type) {
-    titleParts.push(result.type);
-  }
-  
-  if (result.number) {
-    titleParts.push(`#${result.number}`);
-  }
-  
-  // If we didn't match much, use remaining tokens
-  if (titleParts.length === 0) {
-    // Use all non-date tokens for the title
-    const titleTokens = tokens.filter((_, i) => !usedIndices.has(i));
-    result.title = titleTokens.length > 0 ? titleTokens.join(' ') : input.trim();
-    result.classId = null; // Will go to Misc
+  if (titleTokens.length > 0) {
+    // Join remaining tokens and capitalize first letter
+    const rawTitle = titleTokens.join(' ');
+    result.title = capitalizeFirst(rawTitle);
   } else {
-    result.title = titleParts.join(' ');
-  }
-  
-  // Add any unmatched meaningful tokens to the title
-  const unusedTokens = tokens.filter((_, i) => !usedIndices.has(i))
-    .filter(t => t.length > 1 && !/^\d+$/.test(t));
-  
-  if (unusedTokens.length > 0 && titleParts.length > 0) {
-    // Could be additional context, add as note or append
-    const extra = unusedTokens.join(' ');
-    if (extra.length > 2) {
-      result.description = extra;
-    }
+    // Fallback: if everything was parsed out, build from type + number
+    const fallbackParts = [];
+    if (result.type) fallbackParts.push(result.type);
+    if (result.number) fallbackParts.push(`#${result.number}`);
+    result.title = fallbackParts.length > 0 
+      ? fallbackParts.join(' ') 
+      : capitalizeFirst(input.trim());
   }
   
   return result;
