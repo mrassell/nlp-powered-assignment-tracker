@@ -3,7 +3,7 @@ import { useUser } from '../context/UserContext';
 import { useAssignments } from '../hooks/useAssignments';
 import { useClasses } from '../hooks/useClasses';
 import { parseAssignmentInput, formatDateDisplay, formatDateShort, getDaysUntil } from '../utils/nlpParser';
-import { parseCanvasTodoList } from '../utils/canvasParser';
+import { parseBulkTodoList } from '../utils/canvasParser';
 import { downloadRemindersICS } from '../utils/icsExport';
 import './AssignmentTracker.css';
 
@@ -142,7 +142,7 @@ export function AssignmentTracker() {
   // Parse pasted Canvas to-do text into a preview list
   const handleBulkParse = () => {
     if (!bulkText.trim()) return;
-    const items = parseCanvasTodoList(bulkText, classes).map(item => ({
+    const items = parseBulkTodoList(bulkText, classes).map(item => ({
       ...item,
       include: true
     }));
@@ -151,6 +151,20 @@ export function AssignmentTracker() {
 
   const toggleBulkItem = (index) => {
     setBulkPreview(prev => prev.map((item, i) => i === index ? { ...item, include: !item.include } : item));
+  };
+
+  // Apply one class to every previewed row that has no detected course
+  // (common for Brightspace pastes, which don't carry a course name).
+  const applyBulkClassToUnmatched = (classId) => {
+    const selectedClass = classes.find(c => c.id === classId);
+    setBulkPreview(prev => prev.map(item => {
+      if (item.courseName) return item; // leave rows that already have a detected course alone
+      return {
+        ...item,
+        classId: classId || null,
+        className: selectedClass?.name || null
+      };
+    }));
   };
 
   const closeBulkModal = () => {
@@ -642,6 +656,21 @@ export function AssignmentTracker() {
                     <p className="modal-hint">
                       Found {bulkPreview.length} assignment{bulkPreview.length === 1 ? '' : 's'}. Uncheck anything you don't want to import.
                     </p>
+                    {bulkPreview.some(item => !item.courseName) && (
+                      <div className="form-group bulk-assign-class">
+                        <label>Assign unmatched items to class</label>
+                        <select
+                          className="modal-select"
+                          defaultValue=""
+                          onChange={(e) => applyBulkClassToUnmatched(e.target.value)}
+                        >
+                          <option value="">Misc</option>
+                          {classes.map(cls => (
+                            <option key={cls.id} value={cls.id}>{cls.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     <div className="bulk-preview-list">
                       {bulkPreview.map((item, i) => (
                         <label key={i} className="bulk-preview-row">

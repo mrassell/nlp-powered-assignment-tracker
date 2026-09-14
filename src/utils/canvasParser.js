@@ -95,6 +95,20 @@ function toISODate(date) {
 }
 
 /**
+ * Parse a full "Mon D, YYYY" date (Brightspace's "Due on Sep 30, 2026 11:59 PM" style).
+ * The time portion is ignored — reminders are date-only.
+ */
+function parseFullDate(text) {
+  const match = text.trim().match(/^([A-Za-z]+)\.?\s+(\d{1,2}),\s*(\d{4})/);
+  if (!match) return null;
+  const monthNum = MONTHS[match[1].toLowerCase()];
+  if (monthNum === undefined) return null;
+  const day = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+  return new Date(year, monthNum, day);
+}
+
+/**
  * Score how well a raw course name matches an existing class.
  */
 function scoreClassMatch(courseName, cls) {
@@ -249,4 +263,60 @@ export function parseCanvasTodoList(text, classes = []) {
       className: matched ? matched.name : item.courseName,
     };
   });
+}
+
+/**
+ * Parse a pasted Brightspace "To Do" / grades list into structured assignment rows.
+ * Format: a title line, then "Due on <date> <time>", then an "Available on ... until ..."
+ * line (ignored — not the due date) and an optional score line like "0 / 1" (ignored).
+ * Brightspace pastes don't carry a course name, so classId/className come back null.
+ *
+ * Each returned row: { title, url, points, courseName, dueDate (ISO), classId, className, raw }
+ */
+export function parseBrightspaceTodoList(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const results = [];
+
+  let pendingTitle = null;
+
+  for (const line of lines) {
+    if (/^available on/i.test(line)) continue;
+    if (/^\d+\s*\/\s*\d+$/.test(line)) continue; // score, e.g. "0 / 1"
+
+    const dueMatch = line.match(/^due on\s+(.+)$/i);
+    if (dueMatch) {
+      const date = parseFullDate(dueMatch[1]);
+      if (date && pendingTitle) {
+        results.push({
+          title: pendingTitle,
+          url: null,
+          points: null,
+          courseName: null,
+          dueDate: toISODate(date),
+          raw: line,
+        });
+      }
+      pendingTitle = null;
+      continue;
+    }
+
+    // Any other non-empty line is a title candidate — the one immediately
+    // preceding "Due on ..." is the one that gets used.
+    pendingTitle = line;
+  }
+
+  return results.map(item => ({
+    ...item,
+    classId: null,
+    className: null,
+  }));
+}
+
+/**
+ * Parse a pasted bulk to-do list, auto-detecting Canvas vs Brightspace format.
+ */
+export function parseBulkTodoList(text, classes = []) {
+  const canvasResults = parseCanvasTodoList(text, classes);
+  if (canvasResults.length > 0) return canvasResults;
+  return parseBrightspaceTodoList(text);
 }
