@@ -97,11 +97,28 @@ export function useAssignments(username) {
     await updateAssignment(id, { completed: !currentStatus });
   };
 
+  const addAssignments = async (items) => {
+    if (!username || !items || items.length === 0) return;
+
+    try {
+      const assignmentsRef = collection(db, 'users', username, 'assignments');
+      await Promise.all(items.map(item => addDoc(assignmentsRef, {
+        ...item,
+        completed: false,
+        createdAt: serverTimestamp()
+      })));
+    } catch (err) {
+      console.error('Bulk add error:', err);
+      setError('Failed to import assignments');
+    }
+  };
+
   return {
     assignments,
     loading,
     error,
     addAssignment,
+    addAssignments,
     updateAssignment,
     deleteAssignment,
     toggleComplete

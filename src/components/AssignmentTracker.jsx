@@ -3,6 +3,8 @@ import { useUser } from '../context/UserContext';
 import { useAssignments } from '../hooks/useAssignments';
 import { useClasses } from '../hooks/useClasses';
 import { parseAssignmentInput, formatDateDisplay, formatDateShort, getDaysUntil } from '../utils/nlpParser';
+import { parseCanvasTodoList } from '../utils/canvasParser';
+import { downloadRemindersICS } from '../utils/icsExport';
 import './AssignmentTracker.css';
 
 // Status cycle: pending → in_progress → completed → pending
@@ -15,10 +17,11 @@ const STATUS_CONFIG = {
 
 export function AssignmentTracker() {
   const { username, logout } = useUser();
-  const { 
-    assignments, 
-    loading: assignmentsLoading, 
-    addAssignment, 
+  const {
+    assignments,
+    loading: assignmentsLoading,
+    addAssignment,
+    addAssignments,
     deleteAssignment,
     updateAssignment
   } = useAssignments(username);
@@ -34,6 +37,10 @@ export function AssignmentTracker() {
   const [preview, setPreview] = useState(null);
   const [showClassModal, setShowClassModal] = useState(false);
   const [newClassName, setNewClassName] = useState('');
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+  const [bulkPreview, setBulkPreview] = useState(null);
+  const [bulkImporting, setBulkImporting] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [showCompleted, setShowCompleted] = useState(false);
   
@@ -119,6 +126,10 @@ export function AssignmentTracker() {
     setPreview(null);
   };
 
+  const handleExportReminders = () => {
+    downloadRemindersICS(assignments);
+  };
+
   const handleAddClass = async (e) => {
     e.preventDefault();
     if (!newClassName.trim()) return;
@@ -126,6 +137,70 @@ export function AssignmentTracker() {
     await addClass(newClassName);
     setNewClassName('');
     setShowClassModal(false);
+  };
+
+  // Parse pasted Canvas to-do text into a preview list
+  const handleBulkParse = () => {
+    if (!bulkText.trim()) return;
+    const items = parseCanvasTodoList(bulkText, classes).map(item => ({
+      ...item,
+      include: true
+    }));
+    setBulkPreview(items);
+  };
+
+  const toggleBulkItem = (index) => {
+    setBulkPreview(prev => prev.map((item, i) => i === index ? { ...item, include: !item.include } : item));
+  };
+
+  const closeBulkModal = () => {
+    setShowBulkModal(false);
+    setBulkText('');
+    setBulkPreview(null);
+  };
+
+  // Import all selected preview items, creating classes for unmatched courses
+  const handleBulkImport = async () => {
+    if (!bulkPreview || bulkPreview.length === 0) return;
+    const selected = bulkPreview.filter(item => item.include);
+    if (selected.length === 0) return;
+
+    setBulkImporting(true);
+
+    const courseIdCache = {};
+    const toAdd = [];
+
+    for (const item of selected) {
+      let classId = item.classId;
+      let className = item.className;
+
+      if (!classId && item.courseName) {
+        if (courseIdCache[item.courseName]) {
+          classId = courseIdCache[item.courseName];
+        } else {
+          classId = await addClass(item.courseName);
+          courseIdCache[item.courseName] = classId;
+        }
+        className = item.courseName;
+      }
+
+      toAdd.push({
+        title: item.title,
+        rawInput: item.raw || item.title,
+        classId: classId || null,
+        className: className || null,
+        type: 'Assignment',
+        number: null,
+        dueDate: item.dueDate || null,
+        description: item.points ? `${item.points} pts` : '',
+        status: 'pending'
+      });
+    }
+
+    await addAssignments(toAdd);
+
+    setBulkImporting(false);
+    closeBulkModal();
   };
 
   // Group assignments by class
@@ -245,6 +320,14 @@ export function AssignmentTracker() {
               <span className="stat-label">left</span>
             </div>
           </div>
+          <button
+            onClick={handleExportReminders}
+            className="export-btn"
+            disabled={assignments.filter(a => a.dueDate).length === 0}
+            title="Download deadlines as Apple Reminders (.ics)"
+          >
+            📤 Reminders
+          </button>
           <button onClick={logout} className="logout-btn">
             Logout
           </button>
@@ -308,9 +391,14 @@ export function AssignmentTracker() {
         <section className="classes-section">
           <div className="section-header">
             <h2>📖 My Classes</h2>
-            <button onClick={() => setShowClassModal(true)} className="add-class-btn">
-              + Add Class
-            </button>
+            <div className="section-header-actions">
+              <button onClick={() => setShowBulkModal(true)} className="add-class-btn">
+                📋 Bulk Import
+              </button>
+              <button onClick={() => setShowClassModal(true)} className="add-class-btn">
+                + Add Class
+              </button>
+            </div>
           </div>
           
           <div className="classes-grid">
@@ -505,6 +593,90 @@ export function AssignmentTracker() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Import Modal */}
+      {showBulkModal && (
+        <div className="modal-overlay" onClick={closeBulkModal}>
+          <div className="modal edit-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📋 Bulk Import from Canvas</h3>
+              <button onClick={closeBulkModal} className="modal-close">×</button>
+            </div>
+
+            {!bulkPreview ? (
+              <div className="modal-form">
+                <p className="modal-hint">
+                  Paste your Canvas "To Do List" text below — we'll pull out the assignments, due dates, and classes.
+                </p>
+                <textarea
+                  value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
+                  placeholder="Paste your Canvas to-do list here..."
+                  className="modal-input bulk-textarea"
+                  rows={12}
+                  autoFocus
+                />
+                <div className="modal-actions">
+                  <button type="button" onClick={closeBulkModal} className="modal-cancel">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkParse}
+                    className="modal-submit"
+                    disabled={!bulkText.trim()}
+                  >
+                    Preview
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="modal-form">
+                {bulkPreview.length === 0 ? (
+                  <p className="modal-hint">Couldn't find any assignments in that text. Try pasting the full Canvas to-do list.</p>
+                ) : (
+                  <>
+                    <p className="modal-hint">
+                      Found {bulkPreview.length} assignment{bulkPreview.length === 1 ? '' : 's'}. Uncheck anything you don't want to import.
+                    </p>
+                    <div className="bulk-preview-list">
+                      {bulkPreview.map((item, i) => (
+                        <label key={i} className="bulk-preview-row">
+                          <input
+                            type="checkbox"
+                            checked={item.include}
+                            onChange={() => toggleBulkItem(i)}
+                          />
+                          <div className="bulk-preview-info">
+                            <span className="bulk-preview-title">{item.title}</span>
+                            <span className="bulk-preview-meta">
+                              {item.className || 'Misc'}{item.classId ? '' : item.className ? ' (new class)' : ''}
+                              {item.dueDate ? ` · Due ${formatDateDisplay(item.dueDate)}` : ' · No date'}
+                            </span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div className="modal-actions">
+                  <button type="button" onClick={() => setBulkPreview(null)} className="modal-cancel">
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkImport}
+                    className="modal-submit"
+                    disabled={bulkImporting || bulkPreview.every(item => !item.include)}
+                  >
+                    {bulkImporting ? 'Importing...' : `Import ${bulkPreview.filter(i => i.include).length}`}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

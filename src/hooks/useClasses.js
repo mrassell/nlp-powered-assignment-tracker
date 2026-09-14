@@ -60,15 +60,17 @@ export function useClasses(username) {
     
     try {
       const classesRef = collection(db, 'users', username, 'classes');
-      await addDoc(classesRef, {
+      const docRef = await addDoc(classesRef, {
         name: className.trim(),
         keywords: generateKeywords(className.trim()),
         color: assignedColor,
         createdAt: serverTimestamp()
       });
+      return docRef.id;
     } catch (err) {
       console.error('Add class error:', err);
       setError('Failed to add class');
+      return null;
     }
   };
 
