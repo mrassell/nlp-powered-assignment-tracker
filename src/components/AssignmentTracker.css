@@ -386,6 +386,26 @@
   background: rgba(255, 107, 107, 0.2);
 }
 
+.chip-edit {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.class-chip:hover .chip-edit {
+  opacity: 1;
+}
+
+.chip-edit:hover {
+  background: rgba(184, 165, 255, 0.2);
+}
+
 /* Spreadsheet Section */
 .spreadsheet-section {
   background: var(--bg-secondary);

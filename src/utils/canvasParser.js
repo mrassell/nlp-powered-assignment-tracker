@@ -95,17 +95,53 @@ function toISODate(date) {
 }
 
 /**
- * Parse a full "Mon D, YYYY" date (Brightspace's "Due on Sep 30, 2026 11:59 PM" style).
- * The time portion is ignored — reminders are date-only.
+ * Flexible date parser used by the Brightspace and generic fallback parsers.
+ * Handles: "Mon D, YYYY", "Sept. 30, 2026", "Monday, Sep 30, 2026", "Mon D" (no
+ * year — inferred), "M/D/YYYY", "M/D", and ISO "YYYY-MM-DD". Time components
+ * are ignored — reminders are date-only.
  */
-function parseFullDate(text) {
-  const match = text.trim().match(/^([A-Za-z]+)\.?\s+(\d{1,2}),\s*(\d{4})/);
-  if (!match) return null;
-  const monthNum = MONTHS[match[1].toLowerCase()];
-  if (monthNum === undefined) return null;
-  const day = parseInt(match[2], 10);
-  const year = parseInt(match[3], 10);
-  return new Date(year, monthNum, day);
+function parseFlexibleDate(text, today) {
+  const cleaned = text.trim().replace(/^[A-Za-z]+day,?\s+/i, '');
+
+  // "Sep 30, 2026" / "September 30 2026" / "Sept. 30, 2026"
+  let m = cleaned.match(/^([A-Za-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/);
+  if (m) {
+    const monthNum = MONTHS[m[1].toLowerCase()];
+    if (monthNum !== undefined) {
+      return new Date(parseInt(m[3], 10), monthNum, parseInt(m[2], 10));
+    }
+  }
+
+  // "Sep 30" (no year)
+  m = cleaned.match(/^([A-Za-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
+  if (m) {
+    const monthNum = MONTHS[m[1].toLowerCase()];
+    if (monthNum !== undefined) {
+      return buildDate(monthNum, parseInt(m[2], 10), today);
+    }
+  }
+
+  // "9/30/2026", "9/30/26", "9/30"
+  m = cleaned.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if (m) {
+    const month = parseInt(m[1], 10) - 1;
+    const day = parseInt(m[2], 10);
+    let year = m[3] ? parseInt(m[3], 10) : today.getFullYear();
+    if (year < 100) year += 2000;
+    const date = new Date(year, month, day);
+    if (!m[3] && date < new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3)) {
+      date.setFullYear(date.getFullYear() + 1);
+    }
+    return date;
+  }
+
+  // ISO "2026-09-30"
+  m = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) {
+    return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  }
+
+  return null;
 }
 
 /**
@@ -199,17 +235,12 @@ export function parseCanvasTodoList(text, classes = []) {
       continue;
     }
 
-    // Numbered item declaration, e.g. "1. EDU S997: Field Experience Assignment"
-    const itemMatch = line.match(/^\d+\.\s+(.+)$/);
+    // Item declaration, e.g. "1. EDU S997: Field Experience Assignment" — the
+    // leading number is optional since some Canvas exports omit it.
+    const itemMatch = line.match(/^(?:\d+\.\s+)?(.+(?:assignment|quiz|discussion|calendar event))$/i);
     if (itemMatch) {
       const desc = itemMatch[1];
-      if (/calendar event$/i.test(desc)) {
-        awaitingKind = 'event';
-      } else if (/assignment$/i.test(desc) || /quiz$/i.test(desc) || /discussion$/i.test(desc)) {
-        awaitingKind = 'assignment';
-      } else {
-        awaitingKind = 'assignment';
-      }
+      awaitingKind = /calendar event$/i.test(desc) ? 'event' : 'assignment';
       pendingTitle = null;
       pendingUrl = null;
       pendingPoints = null;
@@ -223,15 +254,22 @@ export function parseCanvasTodoList(text, classes = []) {
       continue;
     }
 
-    // Due line finalizes an assignment
-    if (/^due:/i.test(line)) {
-      if (awaitingKind === 'assignment' && currentDate) {
+    // Due line finalizes an assignment — accepts "Due:", "Due on", "Due by", "Due Date:"
+    const dueMatch = line.match(/^due(?:\s*(?:on|by|date)?\s*:?)\s*(.*)$/i);
+    if (dueMatch) {
+      // If we have an explicit date on this line, prefer it over the date header
+      // (some exports repeat the full date next to "Due" instead of relying on
+      // the day header above).
+      const explicitDate = dueMatch[1] ? parseFlexibleDate(dueMatch[1], today) : null;
+      const effectiveDate = explicitDate || currentDate;
+
+      if (awaitingKind === 'assignment' && effectiveDate) {
         results.push({
           title: pendingTitle || currentCourseName || 'Untitled assignment',
           url: pendingUrl || null,
           points: pendingPoints,
           courseName: currentCourseName,
-          dueDate: toISODate(currentDate),
+          dueDate: toISODate(effectiveDate),
           raw: line,
         });
       }
@@ -274,18 +312,21 @@ export function parseCanvasTodoList(text, classes = []) {
  * Each returned row: { title, url, points, courseName, dueDate (ISO), classId, className, raw }
  */
 export function parseBrightspaceTodoList(text) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const results = [];
 
   let pendingTitle = null;
 
   for (const line of lines) {
-    if (/^available on/i.test(line)) continue;
+    if (/^available/i.test(line)) continue;
     if (/^\d+\s*\/\s*\d+$/.test(line)) continue; // score, e.g. "0 / 1"
 
-    const dueMatch = line.match(/^due on\s+(.+)$/i);
+    const dueMatch = line.match(/^due(?:\s*(?:on|by|date)?\s*:?)\s+(.+)$/i);
     if (dueMatch) {
-      const date = parseFullDate(dueMatch[1]);
+      const date = parseFlexibleDate(dueMatch[1], today);
       if (date && pendingTitle) {
         results.push({
           title: pendingTitle,
@@ -313,10 +354,64 @@ export function parseBrightspaceTodoList(text) {
 }
 
 /**
- * Parse a pasted bulk to-do list, auto-detecting Canvas vs Brightspace format.
+ * Last-resort fallback for to-do formats that don't match the strict Canvas or
+ * Brightspace shapes. Any line containing "due" followed by a recognizable
+ * date is treated as finalizing an assignment, using the nearest preceding
+ * non-empty, non-availability, non-score line as the title. Looser than the
+ * dedicated parsers, so it's only used when they find nothing.
+ */
+export function parseGenericTodoList(text) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const results = [];
+
+  let pendingTitle = null;
+
+  for (const line of lines) {
+    if (/^available/i.test(line)) continue;
+    if (/^\d+\s*\/\s*\d+$/.test(line)) continue; // score, e.g. "0 / 1"
+    if (/^nothing planned yet$/i.test(line)) continue;
+
+    const dueMatch = line.match(/\bdue\b(?:\s*(?:on|by|date)?\s*:?)\s*(.*)$/i);
+    if (dueMatch && dueMatch[1]) {
+      const date = parseFlexibleDate(dueMatch[1], today);
+      if (date && pendingTitle) {
+        results.push({
+          title: pendingTitle,
+          url: null,
+          points: null,
+          courseName: null,
+          dueDate: toISODate(date),
+          raw: line,
+        });
+        pendingTitle = null;
+        continue;
+      }
+    }
+
+    const link = stripMarkdownLink(line);
+    pendingTitle = link ? link.label : line;
+  }
+
+  return results.map(item => ({
+    ...item,
+    classId: null,
+    className: null,
+  }));
+}
+
+/**
+ * Parse a pasted bulk to-do list, auto-detecting the source format
+ * (Canvas, then Brightspace, then a generic date-scanning fallback).
  */
 export function parseBulkTodoList(text, classes = []) {
   const canvasResults = parseCanvasTodoList(text, classes);
   if (canvasResults.length > 0) return canvasResults;
-  return parseBrightspaceTodoList(text);
+
+  const brightspaceResults = parseBrightspaceTodoList(text);
+  if (brightspaceResults.length > 0) return brightspaceResults;
+
+  return parseGenericTodoList(text);
 }

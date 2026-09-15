@@ -30,6 +30,7 @@ export function AssignmentTracker() {
     classes,
     loading: classesLoading,
     addClass,
+    updateClass,
     deleteClass
   } = useClasses(username);
 
@@ -37,6 +38,8 @@ export function AssignmentTracker() {
   const [preview, setPreview] = useState(null);
   const [showClassModal, setShowClassModal] = useState(false);
   const [newClassName, setNewClassName] = useState('');
+  const [editingClass, setEditingClass] = useState(null);
+  const [editClassName, setEditClassName] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkPreview, setBulkPreview] = useState(null);
@@ -137,6 +140,20 @@ export function AssignmentTracker() {
     await addClass(newClassName);
     setNewClassName('');
     setShowClassModal(false);
+  };
+
+  const openEditClassModal = (cls) => {
+    setEditingClass(cls);
+    setEditClassName(cls.name);
+  };
+
+  const handleSaveClassName = async (e) => {
+    e.preventDefault();
+    if (!editingClass || !editClassName.trim()) return;
+
+    await updateClass(editingClass.id, { name: editClassName.trim() });
+    setEditingClass(null);
+    setEditClassName('');
   };
 
   // Parse pasted Canvas to-do text into a preview list
@@ -432,7 +449,15 @@ export function AssignmentTracker() {
               >
                 <span className="chip-dot" style={{ backgroundColor: cls.color }}></span>
                 {cls.name} ({(groupedAssignments[cls.id] || []).filter(a => showCompleted || !a.completed).length})
-                <span 
+                <span
+                  className="chip-edit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditClassModal(cls);
+                  }}
+                  title="Rename class"
+                >✏️</span>
+                <span
                   className="chip-delete"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -604,6 +629,39 @@ export function AssignmentTracker() {
                 </button>
                 <button type="submit" className="modal-submit" disabled={!newClassName.trim()}>
                   Add Class
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Class Modal */}
+      {editingClass && (
+        <div className="modal-overlay" onClick={() => setEditingClass(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>✏️ Rename Class</h3>
+              <button onClick={() => setEditingClass(null)} className="modal-close">×</button>
+            </div>
+            <form onSubmit={handleSaveClassName} className="modal-form">
+              <input
+                type="text"
+                value={editClassName}
+                onChange={(e) => setEditClassName(e.target.value)}
+                placeholder="Class name"
+                className="modal-input"
+                autoFocus
+              />
+              <p className="modal-hint">
+                Keywords for matching will be regenerated from the new name.
+              </p>
+              <div className="modal-actions">
+                <button type="button" onClick={() => setEditingClass(null)} className="modal-cancel">
+                  Cancel
+                </button>
+                <button type="submit" className="modal-submit" disabled={!editClassName.trim()}>
+                  Save
                 </button>
               </div>
             </form>
