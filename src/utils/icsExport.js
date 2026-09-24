@@ -35,10 +35,15 @@ export function generateCalendarICS(assignments) {
       const summary = escapeICSText((a.title || 'Untitled') + classSuffix);
       const dueDate = formatICSDate(a.dueDate);
       
-      // Calculate next day for DTEND (all-day events are exclusive end)
-      const dueDateObj = new Date(a.dueDate + 'T00:00:00');
+      // Calculate next calendar day for DTEND (all-day events are exclusive end)
+      // Parse date components to avoid timezone issues
+      const [year, month, day] = a.dueDate.split('-').map(Number);
+      const dueDateObj = new Date(year, month - 1, day);
       dueDateObj.setDate(dueDateObj.getDate() + 1);
-      const endDate = dueDateObj.toISOString().split('T')[0].replace(/-/g, '');
+      const endYear = dueDateObj.getFullYear();
+      const endMonth = String(dueDateObj.getMonth() + 1).padStart(2, '0');
+      const endDay = String(dueDateObj.getDate()).padStart(2, '0');
+      const endDate = `${endYear}${endMonth}${endDay}`;
       
       // Use stable UID based on assignment ID so reimports don't duplicate
       const uid = `assignment-${a.id || 'temp-' + summary.slice(0, 20)}@studybuddy.app`;
@@ -49,13 +54,11 @@ export function generateCalendarICS(assignments) {
       lines.push(`SUMMARY:${summary}`);
       lines.push(`DTSTART;VALUE=DATE:${dueDate}`);
       lines.push(`DTEND;VALUE=DATE:${endDate}`);
+      lines.push('STATUS:CONFIRMED');
       
-      // Add status for completed assignments
+      // Transparent for completed assignments
       if (a.status === 'completed' || a.completed) {
-        lines.push('STATUS:CONFIRMED');
         lines.push('TRANSP:TRANSPARENT');
-      } else {
-        lines.push('STATUS:CONFIRMED');
       }
       
       // Add assignment type and description
@@ -81,8 +84,4 @@ export function downloadCalendarICS(assignments, filename = 'study-buddy-calenda
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
-
-// Backwards compatibility exports
-export const generateRemindersICS = generateCalendarICS;
-export const downloadRemindersICS = downloadCalendarICS;
 

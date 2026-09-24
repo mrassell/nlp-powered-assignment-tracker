@@ -4,9 +4,9 @@
  */
 
 import ICAL from 'ical.js';
-import { generateCalendarICS } from './src/utils/icsExport.js';
+import { generateCalendarICS } from '../src/utils/icsExport.js';
 
-// Sample assignments for testing
+// Sample assignments for testing (including month and year rollovers)
 const sampleAssignments = [
   {
     id: 'test-1',
@@ -42,11 +42,21 @@ const sampleAssignments = [
     dueDate: '2026-10-01',
     status: 'pending',
     completed: false
+  },
+  {
+    id: 'test-5',
+    title: 'End of Year Project',
+    className: 'Computer Science',
+    type: 'Project',
+    dueDate: '2026-12-31',
+    status: 'pending',
+    completed: false
   }
 ];
 
 function validateCalendarExport() {
-  console.log('🧪 Testing ICS calendar export...\n');
+  const timezone = process.env.TZ || 'System';
+  console.log(`🧪 Testing ICS calendar export (Timezone: ${timezone})...\n`);
   
   // Generate ICS
   const icsContent = generateCalendarICS(sampleAssignments);
@@ -73,6 +83,15 @@ function validateCalendarExport() {
   }
   console.log('✓ Correct number of events\n');
   
+  // Expected DTEND values (next calendar day after DTSTART)
+  const expectedEnds = {
+    '2026-09-26': '2026-09-27',
+    '2026-09-27': '2026-09-28',
+    '2026-09-30': '2026-10-01', // Month rollover
+    '2026-10-01': '2026-10-02',
+    '2026-12-31': '2027-01-01'  // Year rollover
+  };
+  
   // Validate each event
   vevents.forEach((vevent, i) => {
     const assignment = sampleAssignments[i];
@@ -98,13 +117,23 @@ function validateCalendarExport() {
     }
     console.log(`  ✓ All-day event`);
     
-    // Check date matches
+    // Check DTSTART matches
     const eventDate = event.startDate.toString(); // YYYY-MM-DD format
     if (eventDate !== assignment.dueDate) {
-      console.error(`  ❌ Date mismatch: got "${eventDate}", expected "${assignment.dueDate}"`);
+      console.error(`  ❌ Start date mismatch: got "${eventDate}", expected "${assignment.dueDate}"`);
       process.exit(1);
     }
-    console.log(`  ✓ Date: ${eventDate}`);
+    console.log(`  ✓ Start date: ${eventDate}`);
+    
+    // Check DTEND is next calendar day (critical for timezone bug)
+    const eventEndDate = event.endDate.toString();
+    const expectedEndDate = expectedEnds[assignment.dueDate];
+    if (eventEndDate !== expectedEndDate) {
+      console.error(`  ❌ End date mismatch: got "${eventEndDate}", expected "${expectedEndDate}"`);
+      console.error(`     (This indicates a timezone bug in DTEND calculation)`);
+      process.exit(1);
+    }
+    console.log(`  ✓ End date: ${eventEndDate} (correctly rolled over)`);
     
     // Check UID is stable
     const expectedUidPrefix = `assignment-${assignment.id}@studybuddy.app`;
@@ -128,24 +157,14 @@ function validateCalendarExport() {
   });
   
   console.log('✅ All tests passed!\n');
-  console.log('Sample ICS output:');
-  console.log('═'.repeat(60));
-  console.log(icsContent);
-  console.log('═'.repeat(60));
   
   return icsContent;
 }
 
 // Run validation
 try {
-  const icsContent = validateCalendarExport();
-  
-  // Write sample ICS to file
-  import('fs').then(fs => {
-    fs.writeFileSync('sample-calendar-export.ics', icsContent);
-    console.log('\n✓ Sample ICS saved to sample-calendar-export.ics');
-  });
-  
+  validateCalendarExport();
+  console.log('✅ Test completed successfully');
 } catch (error) {
   console.error('❌ Test failed:', error);
   process.exit(1);
