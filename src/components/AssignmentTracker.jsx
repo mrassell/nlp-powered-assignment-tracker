@@ -5,6 +5,7 @@ import { useClasses } from '../hooks/useClasses';
 import { parseAssignmentInput, formatDateDisplay, formatDateShort, getDaysUntil } from '../utils/nlpParser';
 import { parseBulkTodoList } from '../utils/canvasParser';
 import { downloadCalendarICS } from '../utils/icsExport';
+import { generateGoogleCalendarURL } from '../utils/googleCalendar';
 import './AssignmentTracker.css';
 
 // Status cycle: pending → in_progress → completed → pending
@@ -359,6 +360,9 @@ export function AssignmentTracker() {
           >
             📤 Calendar
           </button>
+          <span className="calendar-hint">
+            Apple: open file. Google: <a href="https://calendar.google.com/calendar/r/settings/export" target="_blank" rel="noopener noreferrer">import at Settings → Import & export</a>
+          </span>
           <button onClick={logout} className="logout-btn">
             Logout
           </button>
@@ -592,7 +596,20 @@ export function AssignmentTracker() {
                         </div>
                         
                         <div className="col-due">
-                          {assignment.dueDate ? formatDateShort(assignment.dueDate) : '—'}
+                          {assignment.dueDate ? (
+                            <div className="due-content">
+                              <span className="due-date">{formatDateShort(assignment.dueDate)}</span>
+                              <a
+                                href={generateGoogleCalendarURL(assignment)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="google-cal-link"
+                                title="Add to Google Calendar"
+                              >
+                                📅
+                              </a>
+                            </div>
+                          ) : '—'}
                         </div>
                         
                         <div className="col-actions">

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:ics": "node scripts/test-ics-export.js"
+    "test:ics": "node scripts/test-ics-export.js",
+    "test:google": "node scripts/test-google-calendar.js",
+    "test": "npm run test:ics && npm run test:google"
   },
   "dependencies": {
     "firebase": "^10.7.1",
