@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:ics": "node test-ics-export.js"
   },
   "dependencies": {
     "firebase": "^10.7.1",
@@ -17,7 +18,7 @@
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
+    "ical.js": "^2.2.1",
     "vite": "^5.0.8"
   }
 }
-

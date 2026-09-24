@@ -4,7 +4,7 @@ import { useAssignments } from '../hooks/useAssignments';
 import { useClasses } from '../hooks/useClasses';
 import { parseAssignmentInput, formatDateDisplay, formatDateShort, getDaysUntil } from '../utils/nlpParser';
 import { parseBulkTodoList } from '../utils/canvasParser';
-import { downloadRemindersICS } from '../utils/icsExport';
+import { downloadCalendarICS } from '../utils/icsExport';
 import './AssignmentTracker.css';
 
 // Status cycle: pending → in_progress → completed → pending
@@ -129,8 +129,8 @@ export function AssignmentTracker() {
     setPreview(null);
   };
 
-  const handleExportReminders = () => {
-    downloadRemindersICS(assignments);
+  const handleExportCalendar = () => {
+    downloadCalendarICS(assignments);
   };
 
   const handleAddClass = async (e) => {
@@ -352,12 +352,12 @@ export function AssignmentTracker() {
             </div>
           </div>
           <button
-            onClick={handleExportReminders}
+            onClick={handleExportCalendar}
             className="export-btn"
             disabled={assignments.filter(a => a.dueDate).length === 0}
-            title="Download deadlines as Apple Reminders (.ics)"
+            title="Download deadlines as calendar events (.ics)"
           >
-            📤 Reminders
+            📤 Calendar
           </button>
           <button onClick={logout} className="logout-btn">
             Logout
