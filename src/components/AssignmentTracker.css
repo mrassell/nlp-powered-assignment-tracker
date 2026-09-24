@@ -144,7 +144,7 @@
 
 /* Input Section */
 .input-section {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .smart-input-form {
@@ -290,6 +290,39 @@
 /* Classes Section */
 .classes-section {
   margin-bottom: 2rem;
+}
+
+.section-header-with-step {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--pink-main), var(--purple-main));
+  color: white;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.step-indicator h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
 }
 
 .section-header {
@@ -497,6 +530,29 @@
   padding: 4rem 2rem;
   border: 2px dashed var(--pink-light);
   border-radius: var(--radius-md);
+}
+
+.empty-state-compact {
+  text-align: center;
+  padding: 1.5rem 2rem;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--pink-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.empty-icon-small {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.empty-text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .empty-icon {
