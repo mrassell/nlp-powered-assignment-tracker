@@ -1,35 +1,38 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const UserContext = createContext(null);
 
 export function UserProvider({ children }) {
-  const [username, setUsername] = useState(() => {
-    return localStorage.getItem('tracker_username') || null;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (username) {
-      localStorage.setItem('tracker_username', username);
-    } else {
-      localStorage.removeItem('tracker_username');
-    }
-  }, [username]);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+      
+      if (!firebaseUser) {
+        localStorage.removeItem('tracker_username');
+      }
+    });
 
-  const login = (name) => {
-    const cleanName = name.trim().toLowerCase().replace(/\s+/g, '_');
-    if (cleanName) {
-      setUsername(cleanName);
-      return true;
-    }
-    return false;
-  };
+    return () => unsubscribe();
+  }, []);
 
-  const logout = () => {
-    setUsername(null);
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   };
 
   return (
-    <UserContext.Provider value={{ username, login, logout }}>
+    <UserContext.Provider value={{ user, loading, logout }}>
       {children}
     </UserContext.Provider>
   );

@@ -16,7 +16,7 @@ const STATUS_CONFIG = {
 };
 
 export function AssignmentTracker() {
-  const { username, logout } = useUser();
+  const { user, logout } = useUser();
   const {
     assignments,
     loading: assignmentsLoading,
@@ -24,7 +24,7 @@ export function AssignmentTracker() {
     addAssignments,
     deleteAssignment,
     updateAssignment
-  } = useAssignments(username);
+  } = useAssignments(user?.uid);
   
   const {
     classes,
@@ -32,7 +32,7 @@ export function AssignmentTracker() {
     addClass,
     updateClass,
     deleteClass
-  } = useClasses(username);
+  } = useClasses(user?.uid);
 
   const [input, setInput] = useState('');
   const [preview, setPreview] = useState(null);
@@ -335,7 +335,7 @@ export function AssignmentTracker() {
           <span className="header-icon">📚</span>
           <div>
             <h1>Study Buddy</h1>
-            <span className="header-user">@{username}</span>
+            <span className="header-user">{user?.email}</span>
           </div>
         </div>
         <div className="header-right">
