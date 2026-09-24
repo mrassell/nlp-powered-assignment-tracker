@@ -274,3 +274,30 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .login-container {
+    padding: 1rem;
+  }
+  
+  .login-card {
+    padding: 2rem 1.5rem;
+  }
+  
+  .login-input {
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 0.9rem 1rem;
+  }
+  
+  .login-button,
+  .google-button {
+    min-height: 44px; /* Touch target */
+    font-size: 0.95rem;
+  }
+  
+  .toggle-auth-mode {
+    min-height: 44px; /* Touch target */
+    padding: 0.75rem;
+  }
+}

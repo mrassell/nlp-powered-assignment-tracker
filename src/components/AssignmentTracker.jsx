@@ -605,6 +605,7 @@ export function AssignmentTracker() {
                                 rel="noopener noreferrer"
                                 className="google-cal-link"
                                 title="Add to Google Calendar"
+                                aria-label="Add to Google Calendar"
                               >
                                 📅
                               </a>
