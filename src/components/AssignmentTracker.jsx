@@ -4,7 +4,7 @@ import { useAssignments } from '../hooks/useAssignments';
 import { useClasses } from '../hooks/useClasses';
 import { parseAssignmentInput, formatDateDisplay, formatDateShort, getDaysUntil } from '../utils/nlpParser';
 import { parseBulkTodoList } from '../utils/canvasParser';
-import { downloadRemindersICS } from '../utils/icsExport';
+import { downloadCalendarICS } from '../utils/icsExport';
 import './AssignmentTracker.css';
 
 // Status cycle: pending → in_progress → completed → pending
@@ -129,8 +129,8 @@ export function AssignmentTracker() {
     setPreview(null);
   };
 
-  const handleExportReminders = () => {
-    downloadRemindersICS(assignments);
+  const handleExportCalendar = () => {
+    downloadCalendarICS(assignments);
   };
 
   const handleAddClass = async (e) => {
@@ -352,12 +352,12 @@ export function AssignmentTracker() {
             </div>
           </div>
           <button
-            onClick={handleExportReminders}
+            onClick={handleExportCalendar}
             className="export-btn"
             disabled={assignments.filter(a => a.dueDate).length === 0}
-            title="Download deadlines as Apple Reminders (.ics)"
+            title="Download deadlines as calendar events (.ics)"
           >
-            📤 Reminders
+            📤 Calendar
           </button>
           <button onClick={logout} className="logout-btn">
             Logout
@@ -366,8 +366,84 @@ export function AssignmentTracker() {
       </header>
 
       <main className="tracker-main">
-        {/* Smart Input Section */}
+        {/* Step 1: Classes Section */}
+        <section className="classes-section">
+          <div className="section-header-with-step">
+            <div className="step-indicator">
+              <span className="step-number">1</span>
+              <h2>📖 Add Your Classes</h2>
+            </div>
+            <div className="section-header-actions">
+              <button onClick={() => setShowBulkModal(true)} className="add-class-btn">
+                📋 Bulk Import
+              </button>
+              <button onClick={() => setShowClassModal(true)} className="add-class-btn">
+                + Add Class
+              </button>
+            </div>
+          </div>
+          
+          {classes.length === 0 ? (
+            <div className="empty-state-compact">
+              <span className="empty-icon-small">🎓</span>
+              <p className="empty-text">Start by adding your classes (e.g. "Calculus", "English 101", "Chemistry")</p>
+            </div>
+          ) : (
+            <div className="classes-grid">
+              <button 
+                className={`class-chip ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                <span className="chip-dot" style={{ background: 'linear-gradient(135deg, #ff8fab, #b8a5ff)' }}></span>
+                All ({assignments.filter(a => showCompleted || !a.completed).length})
+              </button>
+              
+              {classes.map(cls => (
+                <button 
+                  key={cls.id}
+                  className={`class-chip ${activeTab === cls.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(cls.id)}
+                >
+                  <span className="chip-dot" style={{ backgroundColor: cls.color }}></span>
+                  {cls.name} ({(groupedAssignments[cls.id] || []).filter(a => showCompleted || !a.completed).length})
+                  <span
+                    className="chip-edit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditClassModal(cls);
+                    }}
+                    title="Rename class"
+                  >✏️</span>
+                  <span
+                    className="chip-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Delete "${cls.name}"?`)) deleteClass(cls.id);
+                    }}
+                  >×</span>
+                </button>
+              ))}
+              
+              <button 
+                className={`class-chip misc ${activeTab === 'misc' ? 'active' : ''}`}
+                onClick={() => setActiveTab('misc')}
+              >
+                <span className="chip-dot" style={{ backgroundColor: '#9b9b9b' }}></span>
+                Misc ({(groupedAssignments.misc || []).filter(a => showCompleted || !a.completed).length})
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* Step 2: Smart Input Section */}
         <section className="input-section">
+          <div className="section-header-with-step">
+            <div className="step-indicator">
+              <span className="step-number">2</span>
+              <h2>✨ Add Assignments</h2>
+            </div>
+          </div>
+          
           <form onSubmit={handleSubmit} className="smart-input-form">
             <div className="input-wrapper">
               <span className="input-icon">✨</span>
@@ -377,7 +453,6 @@ export function AssignmentTracker() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type: 'calc hw 1 feb 4' or 'leetcode 2/10'"
                 className="smart-input"
-                autoFocus
               />
               <button type="submit" className="add-btn" disabled={!input.trim()}>
                 Add
@@ -414,67 +489,8 @@ export function AssignmentTracker() {
           </form>
           
           <p className="input-hint">
-            💡 Dates: "2/4", "feb 4", "friday", "tmrw", "next week"
+            💡 Tip: Type assignments in plain language like "calc hw 1 due feb 4" or "english essay next friday"
           </p>
-        </section>
-
-        {/* Classes Section */}
-        <section className="classes-section">
-          <div className="section-header">
-            <h2>📖 My Classes</h2>
-            <div className="section-header-actions">
-              <button onClick={() => setShowBulkModal(true)} className="add-class-btn">
-                📋 Bulk Import
-              </button>
-              <button onClick={() => setShowClassModal(true)} className="add-class-btn">
-                + Add Class
-              </button>
-            </div>
-          </div>
-          
-          <div className="classes-grid">
-            <button 
-              className={`class-chip ${activeTab === 'all' ? 'active' : ''}`}
-              onClick={() => setActiveTab('all')}
-            >
-              <span className="chip-dot" style={{ background: 'linear-gradient(135deg, #ff8fab, #b8a5ff)' }}></span>
-              All ({assignments.filter(a => showCompleted || !a.completed).length})
-            </button>
-            
-            {classes.map(cls => (
-              <button 
-                key={cls.id}
-                className={`class-chip ${activeTab === cls.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(cls.id)}
-              >
-                <span className="chip-dot" style={{ backgroundColor: cls.color }}></span>
-                {cls.name} ({(groupedAssignments[cls.id] || []).filter(a => showCompleted || !a.completed).length})
-                <span
-                  className="chip-edit"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditClassModal(cls);
-                  }}
-                  title="Rename class"
-                >✏️</span>
-                <span
-                  className="chip-delete"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Delete "${cls.name}"?`)) deleteClass(cls.id);
-                  }}
-                >×</span>
-              </button>
-            ))}
-            
-            <button 
-              className={`class-chip misc ${activeTab === 'misc' ? 'active' : ''}`}
-              onClick={() => setActiveTab('misc')}
-            >
-              <span className="chip-dot" style={{ backgroundColor: '#9b9b9b' }}></span>
-              Misc ({(groupedAssignments.misc || []).filter(a => showCompleted || !a.completed).length})
-            </button>
-          </div>
         </section>
 
         {/* Spreadsheet Section */}
@@ -500,8 +516,10 @@ export function AssignmentTracker() {
           ) : sortedAssignments.length === 0 ? (
             <div className="empty-state">
               <span className="empty-icon">🌸</span>
-              <h3>No assignments yet!</h3>
-              <p>Start typing above to add your first assignment</p>
+              <h3>Ready for assignments!</h3>
+              <p>{classes.length === 0 
+                ? "Add your classes above, then start typing your assignments" 
+                : "Use the smart input above to add your first assignment"}</p>
             </div>
           ) : (
             <div className="spreadsheet">
