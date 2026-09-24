@@ -13,13 +13,13 @@ import {
 import { db } from '../firebase';
 import { generateKeywords } from '../utils/nlpParser';
 
-export function useClasses(username) {
+export function useClasses(uid) {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!username) {
+    if (!uid) {
       setClasses([]);
       setLoading(false);
       return;
@@ -28,7 +28,7 @@ export function useClasses(username) {
     setLoading(true);
     setError(null);
 
-    const classesRef = collection(db, 'users', username, 'classes');
+    const classesRef = collection(db, 'users', uid, 'classes');
     const q = query(classesRef, orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(
@@ -49,17 +49,16 @@ export function useClasses(username) {
     );
 
     return () => unsubscribe();
-  }, [username]);
+  }, [uid]);
 
   const addClass = async (className, color = null) => {
-    if (!username || !className.trim()) return;
+    if (!uid || !className.trim()) return;
     
-    // Generate color if not provided
     const colors = ['#ff8fab', '#b8a5ff', '#7ec8e3', '#7ee8c7', '#ffb088', '#ffd66b'];
     const assignedColor = color || colors[classes.length % colors.length];
     
     try {
-      const classesRef = collection(db, 'users', username, 'classes');
+      const classesRef = collection(db, 'users', uid, 'classes');
       const docRef = await addDoc(classesRef, {
         name: className.trim(),
         keywords: generateKeywords(className.trim()),
@@ -75,12 +74,11 @@ export function useClasses(username) {
   };
 
   const updateClass = async (id, updates) => {
-    if (!username) return;
+    if (!uid) return;
     
     try {
-      const docRef = doc(db, 'users', username, 'classes', id);
+      const docRef = doc(db, 'users', uid, 'classes', id);
       
-      // Regenerate keywords if name changed
       if (updates.name) {
         updates.keywords = generateKeywords(updates.name);
       }
@@ -96,10 +94,10 @@ export function useClasses(username) {
   };
 
   const deleteClass = async (id) => {
-    if (!username) return;
+    if (!uid) return;
     
     try {
-      const docRef = doc(db, 'users', username, 'classes', id);
+      const docRef = doc(db, 'users', uid, 'classes', id);
       await deleteDoc(docRef);
     } catch (err) {
       console.error('Delete class error:', err);

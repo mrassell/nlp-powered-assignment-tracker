@@ -4,9 +4,22 @@ import { AssignmentTracker } from './components/AssignmentTracker';
 import './App.css';
 
 function AppContent() {
-  const { username } = useUser();
+  const { user, loading } = useUser();
   
-  return username ? <AssignmentTracker /> : <Login />;
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh' 
+      }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+  
+  return user ? <AssignmentTracker /> : <Login />;
 }
 
 function App() {

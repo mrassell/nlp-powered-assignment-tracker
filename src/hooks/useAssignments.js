@@ -12,13 +12,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
-export function useAssignments(username) {
+export function useAssignments(uid) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!username) {
+    if (!uid) {
       setAssignments([]);
       setLoading(false);
       return;
@@ -27,7 +27,7 @@ export function useAssignments(username) {
     setLoading(true);
     setError(null);
 
-    const assignmentsRef = collection(db, 'users', username, 'assignments');
+    const assignmentsRef = collection(db, 'users', uid, 'assignments');
     const q = query(assignmentsRef, orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(
@@ -48,13 +48,13 @@ export function useAssignments(username) {
     );
 
     return () => unsubscribe();
-  }, [username]);
+  }, [uid]);
 
   const addAssignment = async (assignment) => {
-    if (!username) return;
+    if (!uid) return;
     
     try {
-      const assignmentsRef = collection(db, 'users', username, 'assignments');
+      const assignmentsRef = collection(db, 'users', uid, 'assignments');
       await addDoc(assignmentsRef, {
         ...assignment,
         completed: false,
@@ -67,10 +67,10 @@ export function useAssignments(username) {
   };
 
   const updateAssignment = async (id, updates) => {
-    if (!username) return;
+    if (!uid) return;
     
     try {
-      const docRef = doc(db, 'users', username, 'assignments', id);
+      const docRef = doc(db, 'users', uid, 'assignments', id);
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -82,10 +82,10 @@ export function useAssignments(username) {
   };
 
   const deleteAssignment = async (id) => {
-    if (!username) return;
+    if (!uid) return;
     
     try {
-      const docRef = doc(db, 'users', username, 'assignments', id);
+      const docRef = doc(db, 'users', uid, 'assignments', id);
       await deleteDoc(docRef);
     } catch (err) {
       console.error('Delete error:', err);
@@ -98,10 +98,10 @@ export function useAssignments(username) {
   };
 
   const addAssignments = async (items) => {
-    if (!username || !items || items.length === 0) return;
+    if (!uid || !items || items.length === 0) return;
 
     try {
-      const assignmentsRef = collection(db, 'users', username, 'assignments');
+      const assignmentsRef = collection(db, 'users', uid, 'assignments');
       await Promise.all(items.map(item => addDoc(assignmentsRef, {
         ...item,
         completed: false,
