@@ -1095,15 +1095,29 @@
     max-width: 100%;
     text-align: center;
     font-size: 0.7rem;
+    line-height: 1.4;
     order: -1;
   }
   
   /* Main */
   .tracker-main {
     padding: 1rem;
+    max-width: 100%;
+    margin: 0;
   }
   
-  /* Step indicators */
+  /* Step headers - full width heading, buttons below */
+  .section-header-with-step {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .step-indicator {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
   .step-number {
     width: 28px;
     height: 28px;
@@ -1114,9 +1128,11 @@
     font-size: 1rem;
   }
   
-  /* Classes section */
+  /* Section header actions - buttons below heading */
   .section-header-actions {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
     width: 100%;
   }
   
@@ -1124,6 +1140,7 @@
     width: 100%;
   }
   
+  /* Classes section */
   .classes-grid {
     gap: 0.4rem;
   }
@@ -1156,6 +1173,7 @@
   
   .input-hint {
     font-size: 0.8rem;
+    line-height: 1.4;
   }
   
   /* Spreadsheet section */
@@ -1214,8 +1232,8 @@
   .status-select {
     width: 100%;
     min-width: 0;
-    font-size: 0.85rem;
-    padding: 0.6rem 2rem 0.6rem 0.6rem;
+    font-size: 0.9rem;
+    padding: 0.65rem 2.5rem 0.65rem 0.75rem;
     min-height: 44px; /* Touch target */
   }
   
@@ -1228,14 +1246,20 @@
   }
   
   .title-text {
-    font-size: 1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
     white-space: normal;
     overflow: visible;
+    line-height: 1.3;
+    margin-bottom: 0.25rem;
   }
   
   .title-desc {
+    font-size: 0.85rem;
     white-space: normal;
     overflow: visible;
+    line-height: 1.4;
+    margin-top: 0.25rem;
   }
   
   .col-class,
@@ -1251,6 +1275,7 @@
     font-size: 0.75rem;
     color: var(--text-muted);
     font-weight: 600;
+    min-width: 42px;
   }
   
   .col-type::before {
@@ -1258,6 +1283,7 @@
     font-size: 0.75rem;
     color: var(--text-muted);
     font-weight: 600;
+    min-width: 42px;
   }
   
   .col-due {
@@ -1272,10 +1298,22 @@
     font-size: 0.75rem;
     color: var(--text-muted);
     font-weight: 600;
+    min-width: 42px;
   }
   
   .due-content {
-    justify-content: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .due-date {
+    font-size: 0.9rem;
+  }
+  
+  .class-badge {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
   }
   
   .google-cal-link {
@@ -1286,16 +1324,19 @@
   
   .col-actions {
     justify-content: flex-start;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
   }
   
   .edit-btn,
   .delete-btn {
     opacity: 1;
-    font-size: 1rem;
-    padding: 0.5rem;
+    font-size: 1.1rem;
+    padding: 0.5rem 0.75rem;
     min-width: 44px; /* Touch target */
     min-height: 44px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
   }
   
   /* Modals */
