@@ -36,7 +36,6 @@ export function AssignmentTracker() {
 
   const [input, setInput] = useState('');
   const [preview, setPreview] = useState(null);
-  const [showClassModal, setShowClassModal] = useState(false);
   const [newClassName, setNewClassName] = useState('');
   const [editingClass, setEditingClass] = useState(null);
   const [editClassName, setEditClassName] = useState('');
@@ -136,10 +135,9 @@ export function AssignmentTracker() {
   const handleAddClass = async (e) => {
     e.preventDefault();
     if (!newClassName.trim()) return;
-    
+
     await addClass(newClassName);
     setNewClassName('');
-    setShowClassModal(false);
   };
 
   const openEditClassModal = (cls) => {
@@ -377,11 +375,24 @@ export function AssignmentTracker() {
               <button onClick={() => setShowBulkModal(true)} className="add-class-btn">
                 📋 Bulk Import
               </button>
-              <button onClick={() => setShowClassModal(true)} className="add-class-btn">
-                + Add Category
-              </button>
             </div>
           </div>
+
+          <form onSubmit={handleAddClass} className="add-category-form">
+            <div className="input-wrapper">
+              <span className="input-icon">🗂️</span>
+              <input
+                type="text"
+                value={newClassName}
+                onChange={(e) => setNewClassName(e.target.value)}
+                placeholder="e.g., Work, Personal, CS 101"
+                className="smart-input"
+              />
+              <button type="submit" className="add-btn" disabled={!newClassName.trim()}>
+                Add
+              </button>
+            </div>
+          </form>
 
           {classes.length === 0 ? (
             <div className="empty-state-compact">
@@ -620,39 +631,6 @@ export function AssignmentTracker() {
           )}
         </section>
       </main>
-
-      {/* Add Category Modal */}
-      {showClassModal && (
-        <div className="modal-overlay" onClick={() => setShowClassModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>➕ Add New Category</h3>
-              <button onClick={() => setShowClassModal(false)} className="modal-close">×</button>
-            </div>
-            <form onSubmit={handleAddClass} className="modal-form">
-              <input
-                type="text"
-                value={newClassName}
-                onChange={(e) => setNewClassName(e.target.value)}
-                placeholder="e.g., Work, Personal, CS 101"
-                className="modal-input"
-                autoFocus
-              />
-              <p className="modal-hint">
-                Matching keywords are auto-generated from the name for smart matching.
-              </p>
-              <div className="modal-actions">
-                <button type="button" onClick={() => setShowClassModal(false)} className="modal-cancel">
-                  Cancel
-                </button>
-                <button type="submit" className="modal-submit" disabled={!newClassName.trim()}>
-                  Add Category
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Rename Category Modal */}
       {editingClass && (

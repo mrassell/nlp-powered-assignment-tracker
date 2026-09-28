@@ -354,6 +354,14 @@
   background: var(--secondary-light);
 }
 
+.add-category-form {
+  margin-bottom: 1rem;
+}
+
+.add-category-form .input-wrapper {
+  background: var(--bg-accent);
+}
+
 .classes-grid {
   display: flex;
   flex-wrap: wrap;
