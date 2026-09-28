@@ -4,7 +4,7 @@ import { useAssignments } from '../hooks/useAssignments';
 import { useClasses } from '../hooks/useClasses';
 import { parseAssignmentInput, formatDateDisplay, formatDateShort, getDaysUntil } from '../utils/nlpParser';
 import { parseBulkTodoList } from '../utils/canvasParser';
-import { downloadCalendarICS } from '../utils/icsExport';
+import { downloadRemindersICS } from '../utils/icsExport';
 import './AssignmentTracker.css';
 
 // Status cycle: pending → in_progress → completed → pending
@@ -129,8 +129,8 @@ export function AssignmentTracker() {
     setPreview(null);
   };
 
-  const handleExportCalendar = () => {
-    downloadCalendarICS(assignments);
+  const handleExportReminders = () => {
+    downloadRemindersICS(assignments);
   };
 
   const handleAddClass = async (e) => {
@@ -332,9 +332,9 @@ export function AssignmentTracker() {
       {/* Header */}
       <header className="tracker-header">
         <div className="header-left">
-          <span className="header-icon">📚</span>
+          <span className="header-icon">🗂️</span>
           <div>
-            <h1>Study Buddy</h1>
+            <h1>Deadline Tracker</h1>
             <span className="header-user">{user?.email}</span>
           </div>
         </div>
@@ -352,12 +352,12 @@ export function AssignmentTracker() {
             </div>
           </div>
           <button
-            onClick={handleExportCalendar}
+            onClick={handleExportReminders}
             className="export-btn"
             disabled={assignments.filter(a => a.dueDate).length === 0}
-            title="Download deadlines as calendar events (.ics)"
+            title="Download deadlines as Apple Reminders (.ics)"
           >
-            📤 Calendar
+            📤 Reminders
           </button>
           <button onClick={logout} className="logout-btn">
             Logout
@@ -366,40 +366,40 @@ export function AssignmentTracker() {
       </header>
 
       <main className="tracker-main">
-        {/* Step 1: Classes Section */}
+        {/* Step 1: Categories Section */}
         <section className="classes-section">
           <div className="section-header-with-step">
             <div className="step-indicator">
               <span className="step-number">1</span>
-              <h2>📖 Add Your Classes</h2>
+              <h2>🗂️ Add Your Categories</h2>
             </div>
             <div className="section-header-actions">
               <button onClick={() => setShowBulkModal(true)} className="add-class-btn">
                 📋 Bulk Import
               </button>
               <button onClick={() => setShowClassModal(true)} className="add-class-btn">
-                + Add Class
+                + Add Category
               </button>
             </div>
           </div>
-          
+
           {classes.length === 0 ? (
             <div className="empty-state-compact">
-              <span className="empty-icon-small">🎓</span>
-              <p className="empty-text">Start by adding your classes (e.g. "Calculus", "English 101", "Chemistry")</p>
+              <span className="empty-icon-small">🗂️</span>
+              <p className="empty-text">Start by adding a category (e.g. "Work", "Personal", "Calculus")</p>
             </div>
           ) : (
             <div className="classes-grid">
-              <button 
+              <button
                 className={`class-chip ${activeTab === 'all' ? 'active' : ''}`}
                 onClick={() => setActiveTab('all')}
               >
-                <span className="chip-dot" style={{ background: 'linear-gradient(135deg, #ff8fab, #b8a5ff)' }}></span>
+                <span className="chip-dot" style={{ background: 'linear-gradient(135deg, #6366f1, #14b8a6)' }}></span>
                 All ({assignments.filter(a => showCompleted || !a.completed).length})
               </button>
-              
+
               {classes.map(cls => (
-                <button 
+                <button
                   key={cls.id}
                   className={`class-chip ${activeTab === cls.id ? 'active' : ''}`}
                   onClick={() => setActiveTab(cls.id)}
@@ -412,7 +412,7 @@ export function AssignmentTracker() {
                       e.stopPropagation();
                       openEditClassModal(cls);
                     }}
-                    title="Rename class"
+                    title="Rename category"
                   >✏️</span>
                   <span
                     className="chip-delete"
@@ -423,8 +423,8 @@ export function AssignmentTracker() {
                   >×</span>
                 </button>
               ))}
-              
-              <button 
+
+              <button
                 className={`class-chip misc ${activeTab === 'misc' ? 'active' : ''}`}
                 onClick={() => setActiveTab('misc')}
               >
@@ -451,7 +451,7 @@ export function AssignmentTracker() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type: 'calc hw 1 feb 4' or 'leetcode 2/10'"
+                placeholder="Type: 'calc hw 1 feb 4', 'pay rent 3/1', 'dentist tmrw'"
                 className="smart-input"
               />
               <button type="submit" className="add-btn" disabled={!input.trim()}>
@@ -515,11 +515,11 @@ export function AssignmentTracker() {
             </div>
           ) : sortedAssignments.length === 0 ? (
             <div className="empty-state">
-              <span className="empty-icon">🌸</span>
-              <h3>Ready for assignments!</h3>
-              <p>{classes.length === 0 
-                ? "Add your classes above, then start typing your assignments" 
-                : "Use the smart input above to add your first assignment"}</p>
+              <span className="empty-icon">📋</span>
+              <h3>No deadlines yet!</h3>
+              <p>{classes.length === 0
+                ? "Add a category above, then start typing your first deadline"
+                : "Use the smart input above to add your first deadline"}</p>
             </div>
           ) : (
             <div className="spreadsheet">
@@ -528,7 +528,7 @@ export function AssignmentTracker() {
                   <div className="col-status">Status</div>
                   <div className="col-due-badge">Urgency</div>
                   <div className="col-title">Assignment</div>
-                  <div className="col-class">Class</div>
+                  <div className="col-class">Category</div>
                   <div className="col-type">Type</div>
                   <div className="col-due">Due</div>
                   <div className="col-actions"></div>
@@ -621,12 +621,12 @@ export function AssignmentTracker() {
         </section>
       </main>
 
-      {/* Add Class Modal */}
+      {/* Add Category Modal */}
       {showClassModal && (
         <div className="modal-overlay" onClick={() => setShowClassModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>➕ Add New Class</h3>
+              <h3>➕ Add New Category</h3>
               <button onClick={() => setShowClassModal(false)} className="modal-close">×</button>
             </div>
             <form onSubmit={handleAddClass} className="modal-form">
@@ -634,19 +634,19 @@ export function AssignmentTracker() {
                 type="text"
                 value={newClassName}
                 onChange={(e) => setNewClassName(e.target.value)}
-                placeholder="e.g., Predictive Analytics"
+                placeholder="e.g., Work, Personal, CS 101"
                 className="modal-input"
                 autoFocus
               />
               <p className="modal-hint">
-                Keywords like "pred", "analytics", "pa" will be auto-generated!
+                Matching keywords are auto-generated from the name for smart matching.
               </p>
               <div className="modal-actions">
                 <button type="button" onClick={() => setShowClassModal(false)} className="modal-cancel">
                   Cancel
                 </button>
                 <button type="submit" className="modal-submit" disabled={!newClassName.trim()}>
-                  Add Class
+                  Add Category
                 </button>
               </div>
             </form>
@@ -654,12 +654,12 @@ export function AssignmentTracker() {
         </div>
       )}
 
-      {/* Rename Class Modal */}
+      {/* Rename Category Modal */}
       {editingClass && (
         <div className="modal-overlay" onClick={() => setEditingClass(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>✏️ Rename Class</h3>
+              <h3>✏️ Rename Category</h3>
               <button onClick={() => setEditingClass(null)} className="modal-close">×</button>
             </div>
             <form onSubmit={handleSaveClassName} className="modal-form">
@@ -667,7 +667,7 @@ export function AssignmentTracker() {
                 type="text"
                 value={editClassName}
                 onChange={(e) => setEditClassName(e.target.value)}
-                placeholder="Class name"
+                placeholder="Category name"
                 className="modal-input"
                 autoFocus
               />
@@ -692,14 +692,14 @@ export function AssignmentTracker() {
         <div className="modal-overlay" onClick={closeBulkModal}>
           <div className="modal edit-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>📋 Bulk Import from Canvas</h3>
+              <h3>📋 Bulk Import</h3>
               <button onClick={closeBulkModal} className="modal-close">×</button>
             </div>
 
             {!bulkPreview ? (
               <div className="modal-form">
                 <p className="modal-hint">
-                  Paste your Canvas "To Do List" text below — we'll pull out the assignments, due dates, and classes.
+                  Paste your Canvas or Brightspace to-do list below — we'll pull out the tasks, due dates, and categories.
                 </p>
                 <textarea
                   value={bulkText}
@@ -734,7 +734,7 @@ export function AssignmentTracker() {
                     </p>
                     {bulkPreview.some(item => !item.courseName) && (
                       <div className="form-group bulk-assign-class">
-                        <label>Assign unmatched items to class</label>
+                        <label>Assign unmatched items to category</label>
                         <select
                           className="modal-select"
                           defaultValue=""
@@ -758,7 +758,7 @@ export function AssignmentTracker() {
                           <div className="bulk-preview-info">
                             <span className="bulk-preview-title">{item.title}</span>
                             <span className="bulk-preview-meta">
-                              {item.className || 'Misc'}{item.classId ? '' : item.className ? ' (new class)' : ''}
+                              {item.className || 'Misc'}{item.classId ? '' : item.className ? ' (new category)' : ''}
                               {item.dueDate ? ` · Due ${formatDateDisplay(item.dueDate)}` : ' · No date'}
                             </span>
                           </div>
@@ -809,7 +809,7 @@ export function AssignmentTracker() {
               
               <div className="form-row">
                 <div className="form-group">
-                  <label>Class</label>
+                  <label>Category</label>
                   <select
                     value={editForm.classId}
                     onChange={(e) => setEditForm({ ...editForm, classId: e.target.value })}

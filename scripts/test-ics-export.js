@@ -1,10 +1,11 @@
 /**
- * Validation test for ICS calendar export
- * Verifies that exported .ics files contain proper VEVENT all-day calendar events
+ * Validation test for ICS Reminders export
+ * Verifies that exported .ics files contain VTODO items (not VEVENT calendar
+ * events) with a plain due date, so they land in Apple Reminders.
  */
 
 import ICAL from 'ical.js';
-import { generateCalendarICS } from '../src/utils/icsExport.js';
+import { generateRemindersICS } from '../src/utils/icsExport.js';
 
 // Sample assignments for testing (including month and year rollovers)
 const sampleAssignments = [
@@ -54,14 +55,13 @@ const sampleAssignments = [
   }
 ];
 
-function validateCalendarExport() {
-  const timezone = process.env.TZ || 'System';
-  console.log(`🧪 Testing ICS calendar export (Timezone: ${timezone})...\n`);
-  
+function validateRemindersExport() {
+  console.log('🧪 Testing ICS Reminders export...\n');
+
   // Generate ICS
-  const icsContent = generateCalendarICS(sampleAssignments);
+  const icsContent = generateRemindersICS(sampleAssignments);
   console.log('✓ Generated ICS content\n');
-  
+
   // Parse with ical.js
   let jCalData;
   try {
@@ -71,99 +71,93 @@ function validateCalendarExport() {
     process.exit(1);
   }
   console.log('✓ ICS parses successfully\n');
-  
+
   const comp = new ICAL.Component(jCalData);
-  const vevents = comp.getAllSubcomponents('vevent');
-  
-  console.log(`Found ${vevents.length} VEVENT components (expected ${sampleAssignments.length})`);
-  
-  if (vevents.length !== sampleAssignments.length) {
-    console.error(`❌ Expected ${sampleAssignments.length} events, got ${vevents.length}`);
+  const vtodos = comp.getAllSubcomponents('vtodo');
+
+  console.log(`Found ${vtodos.length} VTODO components (expected ${sampleAssignments.length})`);
+
+  if (vtodos.length !== sampleAssignments.length) {
+    console.error(`❌ Expected ${sampleAssignments.length} VTODO items, got ${vtodos.length}`);
     process.exit(1);
   }
-  console.log('✓ Correct number of events\n');
-  
-  // Expected DTEND values (next calendar day after DTSTART)
-  const expectedEnds = {
-    '2026-09-26': '2026-09-27',
-    '2026-09-27': '2026-09-28',
-    '2026-09-30': '2026-10-01', // Month rollover
-    '2026-10-01': '2026-10-02',
-    '2026-12-31': '2027-01-01'  // Year rollover
-  };
-  
-  // Validate each event
-  vevents.forEach((vevent, i) => {
+  console.log('✓ Correct number of reminders\n');
+
+  // Reject any VEVENT — reminders must not be calendar events
+  const vevents = comp.getAllSubcomponents('vevent');
+  if (vevents.length > 0) {
+    console.error(`❌ Found ${vevents.length} VEVENT components — reminders should be VTODO, not calendar events`);
+    process.exit(1);
+  }
+  console.log('✓ No VEVENT components present\n');
+
+  vtodos.forEach((vtodo, i) => {
     const assignment = sampleAssignments[i];
-    const event = new ICAL.Event(vevent);
-    
-    console.log(`Event ${i + 1}: ${event.summary}`);
-    
-    // Check summary includes title and class
-    const expectedSummary = assignment.className 
+
+    const summary = vtodo.getFirstPropertyValue('summary');
+    const expectedSummary = assignment.className
       ? `${assignment.title} (${assignment.className})`
       : assignment.title;
-    
-    if (event.summary !== expectedSummary) {
-      console.error(`  ❌ Summary mismatch: got "${event.summary}", expected "${expectedSummary}"`);
+
+    console.log(`Reminder ${i + 1}: ${summary}`);
+
+    if (summary !== expectedSummary) {
+      console.error(`  ❌ Summary mismatch: got "${summary}", expected "${expectedSummary}"`);
       process.exit(1);
     }
-    console.log(`  ✓ Summary: "${event.summary}"`);
-    
-    // Check it's an all-day event
-    if (!event.startDate.isDate) {
-      console.error(`  ❌ Not an all-day event (has time component)`);
+    console.log(`  ✓ Summary: "${summary}"`);
+
+    // DUE should be a date-only value (no time component)
+    const dueProp = vtodo.getFirstProperty('due');
+    const dueValue = dueProp.getFirstValue();
+    if (!dueValue.isDate) {
+      console.error('  ❌ DUE has a time component — reminders must be date-only');
       process.exit(1);
     }
-    console.log(`  ✓ All-day event`);
-    
-    // Check DTSTART matches
-    const eventDate = event.startDate.toString(); // YYYY-MM-DD format
-    if (eventDate !== assignment.dueDate) {
-      console.error(`  ❌ Start date mismatch: got "${eventDate}", expected "${assignment.dueDate}"`);
+    const dueDateStr = dueValue.toString();
+    if (dueDateStr !== assignment.dueDate) {
+      console.error(`  ❌ Due date mismatch: got "${dueDateStr}", expected "${assignment.dueDate}"`);
       process.exit(1);
     }
-    console.log(`  ✓ Start date: ${eventDate}`);
-    
-    // Check DTEND is next calendar day (critical for timezone bug)
-    const eventEndDate = event.endDate.toString();
-    const expectedEndDate = expectedEnds[assignment.dueDate];
-    if (eventEndDate !== expectedEndDate) {
-      console.error(`  ❌ End date mismatch: got "${eventEndDate}", expected "${expectedEndDate}"`);
-      console.error(`     (This indicates a timezone bug in DTEND calculation)`);
+    console.log(`  ✓ Due date (no time): ${dueDateStr}`);
+
+    // Status should map pending/in_progress -> NEEDS-ACTION, completed -> COMPLETED
+    const status = vtodo.getFirstPropertyValue('status');
+    const expectedStatus = assignment.status === 'completed' || assignment.completed ? 'COMPLETED' : 'NEEDS-ACTION';
+    if (status !== expectedStatus) {
+      console.error(`  ❌ Status mismatch: got "${status}", expected "${expectedStatus}"`);
       process.exit(1);
     }
-    console.log(`  ✓ End date: ${eventEndDate} (correctly rolled over)`);
-    
-    // Check UID is stable
-    const expectedUidPrefix = `assignment-${assignment.id}@studybuddy.app`;
-    if (event.uid !== expectedUidPrefix) {
-      console.error(`  ❌ UID mismatch: got "${event.uid}", expected "${expectedUidPrefix}"`);
+    console.log(`  ✓ Status: ${status}`);
+
+    // Stable UID
+    const uid = vtodo.getFirstPropertyValue('uid');
+    const expectedUid = `assignment-${assignment.id}@deadline-tracker.app`;
+    if (uid !== expectedUid) {
+      console.error(`  ❌ UID mismatch: got "${uid}", expected "${expectedUid}"`);
       process.exit(1);
     }
-    console.log(`  ✓ Stable UID: ${event.uid}`);
-    
-    // Check category if present
+    console.log(`  ✓ Stable UID: ${uid}`);
+
     if (assignment.type) {
-      const categories = vevent.getFirstPropertyValue('categories');
+      const categories = vtodo.getFirstPropertyValue('categories');
       if (categories !== assignment.type) {
         console.error(`  ❌ Category mismatch: got "${categories}", expected "${assignment.type}"`);
         process.exit(1);
       }
       console.log(`  ✓ Category: ${categories}`);
     }
-    
+
     console.log('');
   });
-  
+
   console.log('✅ All tests passed!\n');
-  
+
   return icsContent;
 }
 
-// Run validation
 try {
-  validateCalendarExport();
+  validateRemindersExport();
   console.log('✅ Test completed successfully');
 } catch (error) {
   console.error('❌ Test failed:', error);

@@ -53,8 +53,9 @@ export function useClasses(uid) {
 
   const addClass = async (className, color = null) => {
     if (!uid || !className.trim()) return;
-    
-    const colors = ['#ff8fab', '#b8a5ff', '#7ec8e3', '#7ee8c7', '#ffb088', '#ffd66b'];
+
+    // Generate color if not provided
+    const colors = ['#6366f1', '#14b8a6', '#7ec8e3', '#7ee8c7', '#ffb088', '#ffd66b'];
     const assignedColor = color || colors[classes.length % colors.length];
     
     try {

@@ -85,11 +85,11 @@ export function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <div className="login-icon">📚</div>
+        <div className="login-icon">🗂️</div>
         <h1 className="login-title">
-          Study <span className="login-title-highlight">Buddy</span>
+          Deadline <span className="login-title-highlight">Tracker</span>
         </h1>
-        <p className="login-subtitle">Your cute assignment tracker ✨</p>
+        <p className="login-subtitle">Track deadlines for school, work, and life</p>
         
         {error && <div className="auth-error">{error}</div>}
         
