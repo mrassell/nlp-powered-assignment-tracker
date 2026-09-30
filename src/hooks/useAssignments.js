@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  collection, 
-  query, 
-  orderBy, 
+import {
+  collection,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -11,6 +9,14 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../firebase';
+
+// A freshly-added doc's serverTimestamp() field reads as null locally until
+// the server acknowledges the write. Sorting client-side (instead of via a
+// Firestore orderBy on that field) means new items show up immediately
+// instead of waiting on that round-trip.
+function toMillis(timestamp) {
+  return timestamp?.toMillis ? timestamp.toMillis() : Date.now();
+}
 
 export function useAssignments(uid) {
   const [assignments, setAssignments] = useState([]);
@@ -28,15 +34,15 @@ export function useAssignments(uid) {
     setError(null);
 
     const assignmentsRef = collection(db, 'users', uid, 'assignments');
-    const q = query(assignmentsRef, orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(
-      q,
+      assignmentsRef,
       (snapshot) => {
         const items = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
+        items.sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
         setAssignments(items);
         setLoading(false);
       },
